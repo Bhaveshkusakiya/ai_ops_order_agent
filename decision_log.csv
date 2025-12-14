@@ -1,0 +1,8 @@
+OrderID,Decision,Reason
+ORD002,Approve,Sufficient inventory and production capacity available
+ORD004,Approve,Sufficient inventory and production capacity available
+ORD007,Approve,Sufficient inventory and production capacity available
+ORD001,Split,"Partial stock available (80), splitting order"
+ORD003,Split,"Partial stock available (160), splitting order"
+ORD005,Split,"Partial stock available (100), splitting order"
+ORD006,Split,"Partial stock available (100), splitting order"
