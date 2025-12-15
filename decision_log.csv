@@ -1,8 +1,8 @@
-OrderID,Decision,Reason
-ORD002,Approve,Sufficient inventory and production capacity available
-ORD004,Approve,Sufficient inventory and production capacity available
-ORD007,Approve,Sufficient inventory and production capacity available
-ORD001,Split,"Partial stock available (80), splitting order"
-ORD003,Split,"Partial stock available (160), splitting order"
-ORD005,Split,"Partial stock available (100), splitting order"
-ORD006,Split,"Partial stock available (100), splitting order"
+OrderID,OrderDate,ProductCode,Priority,RequestedQty,FulfilledQty,RemainingQty,InventoryBefore,InventoryAfter,CapacityBefore,CapacityAfter,Decision,Reason
+ORD002,2025-01-02,K1005,Urgent,80,80,0,180,100,200,120,Approve,Fully fulfilled within stock and capacity limits
+ORD001,2025-01-02,K1001,Normal,120,120,0,140,20,120,0,Approve,Fully fulfilled within stock and capacity limits
+ORD004,2025-01-03,K1001,Urgent,60,20,40,20,0,200,180,Split,Partially fulfilled due to stock or capacity constraints
+ORD003,2025-01-03,K1010,Normal,300,180,120,250,70,180,0,Split,Partially fulfilled due to stock or capacity constraints
+ORD007,2025-01-04,K1010,Urgent,90,70,20,70,0,200,130,Split,Partially fulfilled due to stock or capacity constraints
+ORD005,2025-01-04,K1022,Normal,150,100,50,100,0,130,30,Split,Partially fulfilled due to stock or capacity constraints
+ORD006,2025-01-04,K1005,Normal,200,30,170,100,70,30,0,Split,Partially fulfilled due to stock or capacity constraints

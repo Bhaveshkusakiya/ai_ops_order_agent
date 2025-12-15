@@ -1,85 +1,87 @@
 import pandas as pd
-from datetime import datetime
 
 MAX_DAILY_CAPACITY = 200
 
 def load_data():
     orders = pd.read_csv("orders.csv")
-    inventory = pd.read_csv("inventory.csv")
-    inventory = dict(zip(inventory.ProductCode, inventory.AvailableStock))
+    inventory_df = pd.read_csv("inventory.csv")
+    inventory = dict(zip(inventory_df.ProductCode, inventory_df.AvailableStock))
     return orders, inventory
 
 def process_orders(orders, inventory):
-    daily_capacity = {}
-    results = []
+    # Sort by OrderDate ASC, then Priority (Urgent first)
+    orders["PriorityRank"] = orders["Priority"].apply(
+        lambda x: 0 if x == "Urgent" else 1
+    )
+    orders = orders.sort_values(by=["OrderDate", "PriorityRank"])
 
-    # Urgent orders first
-    orders = orders.sort_values(by="Priority", ascending=False)
+    daily_capacity = {}
+    logs = []
 
     for _, order in orders.iterrows():
         order_id = order["OrderID"]
-        product = order["ProductCode"]
-        qty = order["Quantity"]
         date = order["OrderDate"]
+        product = order["ProductCode"]
+        requested_qty = order["Quantity"]
         priority = order["Priority"]
 
-        if date not in daily_capacity:
-            daily_capacity[date] = MAX_DAILY_CAPACITY
+        daily_capacity.setdefault(date, MAX_DAILY_CAPACITY)
 
-        available_stock = inventory.get(product, 0)
-        available_capacity = daily_capacity[date]
+        inv_before = inventory.get(product, 0)
+        cap_before = daily_capacity[date]
 
-        decision = ""
-        reason = ""
+        fulfilled_qty = min(requested_qty, inv_before, cap_before)
+        remaining_qty = requested_qty - fulfilled_qty
 
-        if available_stock <= 0:
-            decision = "Escalate"
-            reason = f"No inventory available for product {product}"
+        inventory[product] = inv_before - fulfilled_qty
+        daily_capacity[date] = cap_before - fulfilled_qty
 
-        elif qty <= available_stock and qty <= available_capacity:
-            decision = "Approve"
-            inventory[product] -= qty
-            daily_capacity[date] -= qty
-            reason = "Sufficient inventory and production capacity available"
+        inv_after = inventory[product]
+        cap_after = daily_capacity[date]
 
-        elif qty > available_stock and available_stock > 0:
-            decision = "Split"
-            inventory[product] = 0
-            daily_capacity[date] -= min(available_stock, available_capacity)
-            reason = f"Partial stock available ({available_stock}), splitting order"
-
-        elif qty > available_capacity:
-            if priority == "Urgent" and available_capacity > 0:
-                decision = "Split"
-                daily_capacity[date] = 0
-                inventory[product] -= available_capacity
-                reason = "Urgent order partially fulfilled due to capacity limit"
+        # Decision logic
+        if fulfilled_qty == 0:
+            if inv_before == 0:
+                decision = "Escalate"
+                reason = "No inventory available"
             else:
                 decision = "Delay"
-                reason = "Insufficient production capacity for the day"
+                reason = "No production capacity available"
+
+        elif fulfilled_qty < requested_qty:
+            decision = "Split"
+            reason = "Partially fulfilled due to stock or capacity constraints"
 
         else:
-            decision = "Escalate"
-            reason = "Unhandled edge case detected"
+            decision = "Approve"
+            reason = "Fully fulfilled within stock and capacity limits"
 
-        results.append({
+        logs.append({
             "OrderID": order_id,
+            "OrderDate": date,
+            "ProductCode": product,
+            "Priority": priority,
+            "RequestedQty": requested_qty,
+            "FulfilledQty": fulfilled_qty,
+            "RemainingQty": remaining_qty,
+            "InventoryBefore": inv_before,
+            "InventoryAfter": inv_after,
+            "CapacityBefore": cap_before,
+            "CapacityAfter": cap_after,
             "Decision": decision,
             "Reason": reason
         })
 
-    return results
+    return pd.DataFrame(logs)
 
 def main():
     orders, inventory = load_data()
-    results = process_orders(orders, inventory)
+    decision_log = process_orders(orders, inventory)
 
-    print("\n=== AI Ops Assistant Decisions ===\n")
-    for r in results:
-        print(f"{r['OrderID']} -> {r['Decision']} | {r['Reason']}")
+    decision_log.to_csv("decision_log.csv", index=False)
 
-    # Save log
-    pd.DataFrame(results).to_csv("decision_log.csv", index=False)
+    print("\n=== AI Ops Order Decisions ===\n")
+    print(decision_log)
 
 if __name__ == "__main__":
     main()
